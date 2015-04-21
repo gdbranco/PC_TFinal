@@ -39,9 +39,8 @@ void pessoa_destroy(pessoa_t *pessoa,unsigned int qtd)
   return;
 }
 
-void show_pessoa(pessoa_t pessoa,long meu_id)
+void show_pessoa(pessoa_t pessoa)
 {
-  printf("Pessoa %ld ta pouco se fudendo\n",meu_id);
   printf("Pos atual : %d\n", pessoa.corrente);
   printf("Destino : %d\n", pessoa.destino);
   return;

@@ -32,7 +32,7 @@ typedef struct _estrutura_start_t
 void metro_init(metro_t * metro, unsigned int qtd);
 void metro_destroy(metro_t * metro, unsigned int qtd);
 void pessoa_init(pessoa_t * pessoa,unsigned int qtd);
-void show_pessoa(pessoa_t pessoa,long meu_id);
+void show_pessoa(pessoa_t pessoa);
 void pessoa_destroy(pessoa_t *pessoa,unsigned int qtd);
 
 #endif

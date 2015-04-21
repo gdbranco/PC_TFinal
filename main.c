@@ -46,6 +46,8 @@ int main()
 void * start(void *id)
 {
 	estrutura_start_t *meu = (estrutura_start_t*)id;
-  show_pessoa(meu->pessoa,meu->id);
+	printf("Thread %ld\n",meu->id);
+  show_pessoa(meu->pessoa);
+  free(meu);
   return 0;
 }
