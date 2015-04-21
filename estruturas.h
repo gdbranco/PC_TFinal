@@ -14,19 +14,25 @@ typedef struct _metro_t
 {
   sem_t *lotacao;
   pthread_mutex_t *porta;
+  int corrente;
 }metro_t;
 
 typedef struct _pessoas_t
 {
-  pthread_t *eu;
   int destino;
   int corrente;
-  long meu_id;
 }pessoa_t;
+
+typedef struct _estrutura_start_t
+{
+	pessoa_t pessoa;
+	long id;
+}estrutura_start_t;
 
 void metro_init(metro_t * metro, unsigned int qtd);
 void metro_destroy(metro_t * metro, unsigned int qtd);
 void pessoa_init(pessoa_t * pessoa,unsigned int qtd);
+void show_pessoa(pessoa_t pessoa,long meu_id);
 void pessoa_destroy(pessoa_t *pessoa,unsigned int qtd);
 
 #endif
