@@ -7,7 +7,7 @@
 //Definicoes
 #define QTD_PESSOA_METRO 3
 #define QTD_METROS 1
-#define QTD_PESSOAS 100
+#define QTD_PESSOAS 100 
 #define QTD_ESTACOES 7
 #define METRO 0
 typedef struct _estacao_t

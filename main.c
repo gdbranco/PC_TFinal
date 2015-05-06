@@ -78,15 +78,15 @@ void * parada(void *id)
 			sem_wait(metro[estacoes[pessoas[meu_id].corrente].valida].lotacao);
 			pthread_mutex_lock(metro[estacoes[pessoas[meu_id].corrente].valida].porta);
 			qtd_pessoa_metro[estacoes[pessoas[meu_id].corrente].valida]++;
-			pessoas[meu_id].corrente=METRO;
 			pessoas[meu_id].metro=estacoes[pessoas[meu_id].corrente].valida;
-			printf("Pessoa %d entrou no metro %d na estacao %d\n",pessoas[meu_id].id,estacoes[pessoas[meu_id].corrente].valida,metro[estacoes[pessoas[meu_id].corrente].valida].corrente);
+			pessoas[meu_id].corrente=METRO;
+			printf("Pessoa %d entrou no metro %d na estacao %d\n",pessoas[meu_id].id,estacoes[pessoas[meu_id].metro].valida,metro[estacoes[pessoas[meu_id].metro].valida].corrente);
 			sleep(1);
-			if(qtd_pessoa_metro[estacoes[pessoas[meu_id].corrente].valida]==QTD_PESSOA_METRO)
+			if(qtd_pessoa_metro[estacoes[pessoas[meu_id].metro].valida]==QTD_PESSOA_METRO)
 			{
-				sem_post(&metro_avanca[estacoes[pessoas[meu_id].corrente].valida]);
+				sem_post(&metro_avanca[estacoes[pessoas[meu_id].metro].valida]);
 			}
-			pthread_mutex_unlock(metro[estacoes[pessoas[meu_id].corrente].valida].porta);
+			pthread_mutex_unlock(metro[estacoes[pessoas[meu_id].metro].valida].porta);
 		}
 	}
 	return 0;
@@ -101,7 +101,6 @@ void * viagem(void *id)
 		pthread_mutex_lock(metro[meu_id].porta);
 		estacoes[metro[meu_id].corrente].valida = -1;
 		metro[meu_id].corrente=(metro[meu_id].corrente+1)%QTD_ESTACOES;
-		/*ind=(ind+1)%QTD_METROS;*/
 		sleep(1);
 		printf("Metro %d chegou na estacao[%d]\n",metro[meu_id].id,metro[meu_id].corrente);
 		estacoes[metro[meu_id].corrente].valida = metro[meu_id].id;
