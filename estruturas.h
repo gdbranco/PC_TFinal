@@ -13,6 +13,7 @@
 typedef struct _estacao_t
 {
 	pthread_mutex_t *trilho;
+	pthread_cond_t *espera_parada;
 	int valida;
 }estacao_t;
 void estacao_init(estacao_t *estacao);

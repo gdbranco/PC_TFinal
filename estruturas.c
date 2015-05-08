@@ -3,6 +3,10 @@ void estacao_init(estacao_t * estacao)
 {
 	for(unsigned int i=0;i<QTD_ESTACOES;i++)
 	{
+		estacao[i].trilho = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
+		estacao[i].espera_parada = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
+		pthread_mutex_init(estacao[i].trilho,NULL);
+		pthread_cond_init(estacao[i].espera_parada,NULL);
 		estacao[i].valida=-1;
 	}
 	return;
@@ -12,7 +16,10 @@ void estacao_destroy(estacao_t * estacao)
 {
 	for(unsigned int i=0;i<QTD_ESTACOES;i++)
 	{
+		pthread_mutex_destroy(estacao[i].trilho);
 		free(estacao[i].trilho);
+		pthread_cond_destroy(estacao[i].espera_parada);
+		free(estacao[i].espera_parada);
 	}
 	free(estacao);
 	return;
