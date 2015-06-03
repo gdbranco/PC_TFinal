@@ -1,12 +1,16 @@
-.PHONY: all
-all: METRO
+.PHONY: ALL clean fclean
 
-METRO: estruturas.o
-	gcc -g -std=gnu99 main.c estruturas.o -o metro -pthread
+ALL: METRO clean
 
-estruturas.o: ./estruturas.c
-	gcc -g -std=gnu99 -Wall estruturas.c estruturas.h -c
+METRO: estruturas.o main.c
+	gcc -std=gnu99 -Wall estruturas.o main.c -o metro -pthread
 
+estruturas.o: estruturas.c estruturas.h
+	gcc -std=gnu99 -Wall estruturas.c estruturas.h -c -pthread
+	
 clean:
 	rm -f *.o
+
+fclean: clean
+	rm -f *.gch
 	rm -f metro

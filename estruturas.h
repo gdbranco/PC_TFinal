@@ -2,44 +2,52 @@
 #define EST_H
 #include <pthread.h>
 #include <semaphore.h>
-#include <stdlib.h>
 #include <stdio.h>
-//Definicoes
-#define QTD_PESSOA_METRO 3
+#include <stdlib.h>
+#include <sys/time.h>
+#define ESTADO_ENTRAR 0
+#define ESTADO_SAIR 1
+#define MAX_LOTACAO 3
+#define QTD_PESSOAS 10
+#define QTD_ESTACOES 5
 #define QTD_METROS 1
-#define QTD_PESSOAS 100 
-#define QTD_ESTACOES 7
-#define METRO 0
-typedef struct _estacao_t
+#define METRO QTD_ESTACOES
+typedef struct _metro
 {
-	pthread_mutex_t *trilho;
-	pthread_cond_t *espera_parada;
-	int valida;
-}estacao_t;
-void estacao_init(estacao_t *estacao);
-void estacao_destroy(estacao_t *estacao);
-
-typedef struct _metro_t
-{
-  sem_t *lotacao;
-  pthread_mutex_t *porta;
-  int corrente;
-  int id;
+	unsigned int id;
+	unsigned int estacao_atual;
+	pthread_mutex_t porta;
+	pthread_mutex_t atualiza;
+	sem_t lotacao;
+	sem_t avanca;
+	pthread_cond_t dentro;
+	unsigned int qtd_pessoas;
+	struct timeval start,end;
 }metro_t;
-void metro_init(metro_t * metro);
-void metro_destroy(metro_t * metro);
 
-typedef struct _pessoas_t
+void MetroInit(metro_t *metro);
+void MetroDestroy(metro_t *metro);
+
+typedef struct _pessoa
 {
-  int destino;
-  int corrente;
-  int metro;
-  int id;
+	unsigned int id;
+	unsigned int estacao_destino;
+	unsigned int estacao_atual;
+	unsigned int estado;
 }pessoa_t;
 
-void pessoa_init(pessoa_t * pessoa);
-void show_pessoa(pessoa_t pessoa);
-void pessoa_novo_destino(pessoa_t *pessoa, int j);
-void pessoa_destroy(pessoa_t *pessoa);
+void PessoaInit(pessoa_t *pessoa);
+void ShowPessoa(pessoa_t pessoa);
+void PessoaNovoDestino(pessoa_t *pessoa, int j);
+void PessoaDestroy(pessoa_t *pessoa);
+
+typedef struct _estacao
+{
+	pthread_cond_t avisa;
+	unsigned int id;
+}estacao_t;
+
+void EstacaoInit(estacao_t *estacao);
+void EstacaoDestroy(estacao_t *estacao);
 
 #endif

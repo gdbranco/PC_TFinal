@@ -5,196 +5,134 @@
 #include<semaphore.h>
 #include"estruturas.h"
 
-metro_t *metro;
+metro_t metro;
 pessoa_t *pessoas;
-pthread_mutex_t l;
 estacao_t *estacoes;
-sem_t *metro_avanca;
-int *qtd_pessoa_metro;
 
-void * viagem(void * id);
-void * viagem2(void * id);
-void * parada(void * id);
-void * parada2(void *id);
+
+void * Viagem(void * id);
+void * Parada(void *id);
+
 int main()
 {
-	int i;
-	//Alocação de memoria
-	estacoes = (estacao_t*) malloc(QTD_ESTACOES*sizeof(estacao_t));
-	metro = (metro_t*) malloc(QTD_METROS*sizeof(metro_t));  
-	pessoas = (pessoa_t*) malloc(QTD_PESSOAS*sizeof(pessoa_t));
-	pthread_t *handler;
-	handler = (pthread_t*)malloc(QTD_PESSOAS*sizeof(pthread_t));
-	pthread_t *metro_handler;
-	metro_handler = (pthread_t*) malloc(QTD_METROS*sizeof(pthread_t));
-	metro_avanca = (sem_t*)malloc(QTD_METROS*sizeof(sem_t));
-	qtd_pessoa_metro = (int*)malloc(QTD_METROS*sizeof(int));
+	// Alocação de memoria
+	pessoas  = (pessoa_t*) malloc (QTD_PESSOAS * sizeof(pessoa_t));
+	estacoes = (estacao_t*) malloc (QTD_ESTACOES * sizeof(estacao_t));
+	pthread_t *pessoaHandler;
+	pthread_t metroHandler;
+	pessoaHandler = (pthread_t*) malloc (QTD_PESSOAS * sizeof(pthread_t));
 	printf("Memoria alocada\n");
-	//Inicialização basica
-	metro_init(metro);
-	pessoa_init(pessoas);
-	estacao_init(estacoes);
-	pthread_mutex_init(&l,NULL);
-	for(i=0;i<QTD_METROS;i++)
-	{
-		sem_init(&metro_avanca[i],0,1);
-		qtd_pessoa_metro[i]=0;
-	}
+
+	// Inicialização basica
+	MetroInit(&metro);
+	PessoaInit(pessoas);
+	EstacaoInit(estacoes);
 	printf("Inicialização concluida\n");
-	//Programa em si
-	for(i=0;i<QTD_METROS;i++)
+
+	// Programa em si
+	pthread_create(&metroHandler, NULL, &Viagem, (void*)(intptr_t)0);
+	for(int i=0; i < QTD_PESSOAS; i++)
 	{
-		pthread_create(&metro_handler[i],NULL,&viagem2,(void*)(intptr_t)i);
+		pthread_create(&pessoaHandler[i], NULL, &Parada, (void*)(intptr_t)i);
 	}
-	for(i=0;i<QTD_PESSOAS;i++)
+	pthread_join(metroHandler,NULL);
+	for(int i=0; i < QTD_PESSOAS; i++)
 	{
-		pthread_create(&handler[i],NULL,&parada2,(void*)(intptr_t)i);
-	}
-	for(i=0;i<QTD_METROS;i++)
-	{
-		pthread_join(metro_handler[i],NULL);
-	}
-	for(i=0;i<QTD_PESSOAS;i++)
-	{
-		pthread_join(handler[i],NULL);
+		pthread_join(pessoaHandler[i], NULL);
 	}
 
-	//Liberando a memoria
-	pessoa_destroy(pessoas);
-	metro_destroy(metro);
-	estacao_destroy(estacoes);
-	free(metro_avanca);
-	free(qtd_pessoa_metro);
-	free(handler);
-	free(metro_handler);
+	// Liberando a memoria
+	PessoaDestroy(pessoas);
+	MetroDestroy(&metro);
+	EstacaoDestroy(estacoes);
+
+	free(pessoaHandler);
+
 	pthread_exit(NULL);
+	printf("Memória Liberada\n");
 	return 0;
 }
 
-void * parada2(void *id)
+void sairmetro(int id)
 {
-    int meu_id = (intptr_t)id;
-    while(1)
-    {
-      while(estacoes[pessoas[meu_id].corrente].valida==-1 && pessoas[meu_id].corrente!=METRO)
-      {
-	pthread_cond_wait(estacoes[pessoas[meu_id].corrente].espera_parada,estacoes[pessoas[meu_id].corrente].trilho);
-      }
-      sem_wait(metro[estacoes[pessoas[meu_id].corrente].valida].lotacao);
-      qtd_pessoa_metro[estacoes[pessoas[meu_id].corrente].valida]++;
-      pessoas[meu_id].metro=estacoes[pessoas[meu_id].corrente].valida;
-      pessoas[meu_id].corrente=METRO;
-      printf("Pessoa %d entrou no metro %d na estacao %d\n",pessoas[meu_id].id,estacoes[pessoas[meu_id].metro].valida,metro[estacoes[pessoas[meu_id].metro].valida].corrente);
-      sleep(1);
-      if(qtd_pessoa_metro[estacoes[pessoas[meu_id].metro].valida]==QTD_PESSOA_METRO)
-      {
-	    sem_post(&metro_avanca[estacoes[pessoas[meu_id].metro].valida]);
-      }
-      pthread_mutex_unlock(metro[estacoes[pessoas[meu_id].metro].valida].porta);
-    }
-    return 0;
+	sem_post(&metro.lotacao);
+	pthread_mutex_lock(&metro.atualiza);
+	metro.qtd_pessoas--;
+	pthread_mutex_unlock(&metro.atualiza);
+	pessoas[id].estacao_atual = metro.estacao_atual;
+	pessoas[id].estado = ESTADO_ENTRAR;
 }
 
-void * parada(void *id)
+void entrarmetro(int id)
+{
+	sem_wait(&metro.lotacao);
+	pthread_mutex_lock(&metro.atualiza);
+	metro.qtd_pessoas++;
+	pthread_mutex_unlock(&metro.atualiza);
+	pessoas[id].estacao_atual = METRO;
+	pessoas[id].estado = ESTADO_SAIR;
+}
+
+void *Parada(void *id)
 {
 	int meu_id = (intptr_t)id;
 	while(1)
 	{
-		if(estacoes[pessoas[meu_id].corrente].valida!=-1)
+		switch(pessoas[meu_id].estado)
 		{
-			sem_wait(metro[estacoes[pessoas[meu_id].corrente].valida].lotacao);
-			pthread_mutex_lock(metro[estacoes[pessoas[meu_id].corrente].valida].porta);
-			qtd_pessoa_metro[estacoes[pessoas[meu_id].corrente].valida]++;
-			pessoas[meu_id].metro=estacoes[pessoas[meu_id].corrente].valida;
-			pessoas[meu_id].corrente=METRO;
-			printf("Pessoa %d entrou no metro %d na estacao %d\n",pessoas[meu_id].id,estacoes[pessoas[meu_id].metro].valida,metro[estacoes[pessoas[meu_id].metro].valida].corrente);
-			sleep(1);
-			if(qtd_pessoa_metro[estacoes[pessoas[meu_id].metro].valida]==QTD_PESSOA_METRO)
-			{
-				sem_post(&metro_avanca[estacoes[pessoas[meu_id].metro].valida]);
-			}
-			pthread_mutex_unlock(metro[estacoes[pessoas[meu_id].metro].valida].porta);
-		}
-	}
-	return 0;
-}
-
-void * viagem2(void *id)
-{
-  int meu_id = (intptr_t)id;
-  while(1)
-  {
-    sem_wait(&metro_avanca[meu_id]);
-    estacoes[metro[meu_id].corrente].valida = -1;
-    metro[meu_id].corrente=(metro[meu_id].corrente+1)%QTD_ESTACOES;
-    printf("Metro %d chegou na estacao[%d]\n",metro[meu_id].id,metro[meu_id].corrente);
-    estacoes[metro[meu_id].corrente].valida = metro[meu_id].id;
-    pthread_mutex_lock(estacoes[metro[meu_id].corrente].trilho);
-    pthread_mutex_lock(metro[meu_id].porta);
-    pthread_cond_broadcast(estacoes[metro[meu_id].corrente].espera_parada);
-    sleep(1);
-    for(int j=0;j<QTD_PESSOAS;j++)
-    {
-      if(pessoas[j].corrente==METRO && pessoas[j].metro==meu_id)
-      {
-	if(metro[meu_id].corrente==pessoas[j].destino)
-	{
-	  qtd_pessoa_metro[meu_id]--;
-	  printf("Pessoa %d saiu do metro %d na estacao %d\n",pessoas[j].id,meu_id,pessoas[j].destino);
-	  sleep(2);
-	  pessoas[j].corrente=metro[meu_id].corrente;
-	  pessoa_novo_destino(pessoas,j);
-	  sem_post(metro[meu_id].lotacao);
-	  pthread_cond_broadcast(estacoes[metro[meu_id].corrente].espera_parada);
-	}
-      }
-    }
-    pthread_mutex_unlock(metro[meu_id].porta);
-    if(qtd_pessoa_metro[meu_id]==QTD_PESSOA_METRO)
-    {
-      printf("Metro %d lotado, seguindo viagem\n",meu_id);
-      sleep(2);
-      sem_post(&metro_avanca[meu_id]);
-    }
-    pthread_mutex_unlock(estacoes[metro[meu_id].corrente].trilho);
-  }
-  return 0;
-}
-
-void * viagem(void *id)
-{
-	int meu_id = (intptr_t)id;
-	while(1)
-	{
-		sem_wait(&metro_avanca[meu_id]);
-		pthread_mutex_lock(metro[meu_id].porta);
-		estacoes[metro[meu_id].corrente].valida = -1;
-		metro[meu_id].corrente=(metro[meu_id].corrente+1)%QTD_ESTACOES;
-		sleep(1);
-		printf("Metro %d chegou na estacao[%d]\n",metro[meu_id].id,metro[meu_id].corrente);
-		estacoes[metro[meu_id].corrente].valida = metro[meu_id].id;
-		for(int j=0;j<QTD_PESSOAS;j++)
-		{
-			if(pessoas[j].corrente==METRO && pessoas[j].metro==meu_id)
-			{
-				if(metro[meu_id].corrente==pessoas[j].destino)
-				{	
-					qtd_pessoa_metro[meu_id]--;
-					printf("Pessoa %d saiu do metro %d na estacao %d\n",pessoas[j].id,meu_id,pessoas[j].destino);
-					sleep(2);
-					pessoas[j].corrente=metro[meu_id].corrente;
-					pessoa_novo_destino(pessoas,j);
-					sem_post(metro[meu_id].lotacao);	
+			case ESTADO_SAIR:
+				/*Decide se a pessoa deve esperar dentro do metro até chegar em sua estacao de destino*/
+				pthread_mutex_lock(&metro.porta);
+				while(pessoas[meu_id].estacao_destino!=metro.estacao_atual && pessoas[meu_id].estacao_atual == METRO)
+				{
+					printf("Pessoa %d esperando o metro chegar no destino %d\n",pessoas[meu_id].id,pessoas[meu_id].estacao_destino);
+					pthread_cond_wait(&metro.dentro,&metro.porta);
 				}
-			}
-		}
-		pthread_mutex_unlock(metro[meu_id].porta);
-		if(qtd_pessoa_metro[meu_id]==QTD_PESSOA_METRO)
-		{
-			printf("Metro %d lotado, seguindo viagem\n",meu_id);
-			sleep(2);
-			sem_post(&metro_avanca[meu_id]);
+				sairmetro(meu_id);
+				printf(" <<<< Pessoa %d saiu do metro na estacao %d\n", pessoas[meu_id].id,metro.estacao_atual);
+				sleep(3);
+				PessoaNovoDestino(pessoas, meu_id);
+				pthread_mutex_unlock(&metro.porta);
+				break;
+			case ESTADO_ENTRAR:
+				/*Decide se a pessoa deve esperar na estacao ate um metro chegar nela*/
+				pthread_mutex_lock(&metro.porta);
+				while(pessoas[meu_id].estacao_atual!=metro.estacao_atual && pessoas[meu_id].estacao_atual != METRO)
+				{
+					printf("Pessoa %d esperando o metro chegar na estacao %d\n",pessoas[meu_id].id,pessoas[meu_id].estacao_atual);
+					pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro.porta);    
+				}
+				pthread_mutex_unlock(&metro.porta);
+				entrarmetro(meu_id);
+				printf(" >>>> Pessoa %d entrou no metro na estacao %d com destino %d\n", pessoas[meu_id].id,metro.estacao_atual,pessoas[meu_id].estacao_destino);
+				break;
 		}
 	}
 	return 0;
 }
+
+void *Viagem(void *id)
+{
+	//int meu_id = (intptr_t)id;
+	double delta;
+	while(1)
+	{
+		pthread_mutex_lock(&metro.porta);
+		sem_wait(&metro.avanca);
+		gettimeofday(&metro.start,NULL);
+		metro.estacao_atual = (metro.estacao_atual+1)%QTD_ESTACOES;
+		printf("\nMetro chegou na estacao %d\n\n",metro.estacao_atual);
+		pthread_cond_broadcast(&metro.dentro);
+		pthread_cond_broadcast(&estacoes[metro.estacao_atual].avisa);
+		pthread_mutex_unlock(&metro.porta);
+		do
+		{
+			gettimeofday(&metro.end,NULL);
+			delta = ((metro.end.tv_sec - metro.start.tv_sec) * 1.e6 + metro.end.tv_usec - metro.start.tv_usec) / 1.e6;
+		}while(delta<2);
+		sem_post(&metro.avanca);
+	}
+	return 0;
+}
+
+
