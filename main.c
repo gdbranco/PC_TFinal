@@ -12,6 +12,8 @@ estacao_t *estacoes;
 
 void * Viagem(void * id);
 void * Parada(void *id);
+void sairmetro(int id);
+void entrarmetro(int id);
 
 int main()
 {
