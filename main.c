@@ -136,13 +136,13 @@ void *Parada(void *id)
 void *Viagem(void *id)
 {
 	int meu_id = (intptr_t)id;
-	double delta;
+	/*double delta;*/
 	int estacao_id;
 	while(1)
 	{
 		pthread_mutex_lock(&metro[meu_id].porta);
 		sem_wait(&metro[meu_id].avanca);
-		gettimeofday(&metro[meu_id].start,NULL);
+		/*gettimeofday(&metro[meu_id].start,NULL);*/
 		metro[meu_id].estacao_atual = (metro[meu_id].estacao_atual+1)%QTD_ESTACOES;
 		estacao_id = metro[meu_id].estacao_atual;
 		pthread_mutex_lock(&estacoes[estacao_id].hold);
@@ -151,11 +151,12 @@ void *Viagem(void *id)
 		pthread_cond_broadcast(&metro[meu_id].dentro);
 		pthread_cond_broadcast(&estacoes[metro[meu_id].estacao_atual].avisa);
 		pthread_mutex_unlock(&metro[meu_id].porta);
-		do
-		{
-			gettimeofday(&metro[meu_id].end,NULL);
-			delta = ((metro[meu_id].end.tv_sec - metro[meu_id].start.tv_sec) * 1.e6 + metro[meu_id].end.tv_usec - metro[meu_id].start.tv_usec) / 1.e6;
-		}while(delta<TEMPO_ESPERA_METRO);
+		sleep(TEMPO_ESPERA_METRO);
+		/*do*/
+		/*{*/
+			/*gettimeofday(&metro[meu_id].end,NULL);*/
+			/*delta = ((metro[meu_id].end.tv_sec - metro[meu_id].start.tv_sec) * 1.e6 + metro[meu_id].end.tv_usec - metro[meu_id].start.tv_usec) / 1.e6;*/
+		/*}while(delta<TEMPO_ESPERA_METRO);*/
 		pthread_mutex_unlock(&estacoes[estacao_id].hold);
 		sem_post(&metro[meu_id].avanca);
 		printf("----Metro %d esta em viagem----\n",metro[meu_id].id);

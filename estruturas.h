@@ -25,7 +25,7 @@ typedef struct _metro
 	sem_t avanca;
 	pthread_cond_t dentro;
 	unsigned int qtd_pessoas;
-	struct timeval start,end;
+	//struct timeval start,end;
 }metro_t;
 
 void MetroInit(metro_t *metro);
