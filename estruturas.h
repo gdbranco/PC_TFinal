@@ -7,11 +7,14 @@
 #include <sys/time.h>
 #define ESTADO_ENTRAR 0
 #define ESTADO_SAIR 1
-#define MAX_LOTACAO 3
-#define QTD_PESSOAS 10
+#define MAX_LOTACAO 6
+#define QTD_PESSOAS 100
 #define QTD_ESTACOES 5
-#define QTD_METROS 1
+#define QTD_METROS 2
 #define METRO QTD_ESTACOES
+#define TEMPO_ESPERA_METRO 5
+#define TEMPO_VIAGEM 7
+#define TEMPO_ESPERA_PESSOA 3
 typedef struct _metro
 {
 	unsigned int id;
@@ -34,6 +37,7 @@ typedef struct _pessoa
 	unsigned int estacao_destino;
 	unsigned int estacao_atual;
 	unsigned int estado;
+	int meu_metro;
 }pessoa_t;
 
 void PessoaInit(pessoa_t *pessoa);
@@ -45,6 +49,8 @@ typedef struct _estacao
 {
 	pthread_cond_t avisa;
 	unsigned int id;
+	int metro_estacao;
+	pthread_mutex_t hold;
 }estacao_t;
 
 void EstacaoInit(estacao_t *estacao);

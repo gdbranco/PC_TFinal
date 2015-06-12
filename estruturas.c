@@ -2,18 +2,21 @@
 //--------------METRO--------------------
 void MetroInit(metro_t *metro)
 {
-	metro->id = 0;
-	metro->estacao_atual = -1;
-	pthread_mutex_init(&metro->porta,NULL);
-	pthread_mutex_init(&metro->atualiza,NULL);
-	pthread_cond_init(&metro->dentro,NULL);
-	sem_init(&metro->lotacao,0,MAX_LOTACAO);
-	sem_init(&metro->avanca,0,1);
-	//metro->qtd_pessoas = 0;
+	for(int i=0;i<QTD_METROS;i++)
+	{
+		metro[i].id = i;
+		metro[i].estacao_atual = -1;
+		pthread_mutex_init(&metro[i].porta,NULL);
+		pthread_mutex_init(&metro[i].atualiza,NULL);
+		pthread_cond_init(&metro[i].dentro,NULL);
+		sem_init(&metro[i].lotacao,0,MAX_LOTACAO);
+		sem_init(&metro[i].avanca,0,1);
+		metro[i].qtd_pessoas = 0;
+	}
 }
 void MetroDestroy(metro_t *metro)
 {
-	
+	free(metro);	
 }
 //---------------------------------------
 //--------------PESSOA-------------------
@@ -31,6 +34,7 @@ void PessoaInit(pessoa_t *pessoa)
 			pessoa[i].estacao_destino = rand_r(&seed) % QTD_ESTACOES;
 		}while(pessoa[i].estacao_destino == pessoa[i].estacao_atual);
 		pessoa[i].estado = ESTADO_ENTRAR;
+		pessoa[i].meu_metro = -1;
 	}
 }
 
@@ -42,6 +46,7 @@ void PessoaNovoDestino(pessoa_t *pessoa, int j)
 		pessoa[j].estacao_destino = rand_r(&seed) % QTD_ESTACOES;
 	}while(pessoa[j].estacao_atual == pessoa[j].estacao_destino);
 	pessoa[j].estado = ESTADO_ENTRAR;
+	pessoa[j].meu_metro = -1;
 }
 
 void PessoaDestroy(pessoa_t *pessoas)
@@ -59,6 +64,7 @@ void EstacaoInit(estacao_t * estacao)
 {
 	for(int i=0; i < QTD_ESTACOES; i++)
 	{
+		pthread_mutex_init(&estacao[i].hold,NULL);
 		pthread_cond_init(&estacao[i].avisa, NULL);
 		estacao[i].id = i;
 	}
