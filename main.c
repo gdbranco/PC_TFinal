@@ -157,9 +157,9 @@ void *Viagem(void *id)
 			/*gettimeofday(&metro[meu_id].end,NULL);*/
 			/*delta = ((metro[meu_id].end.tv_sec - metro[meu_id].start.tv_sec) * 1.e6 + metro[meu_id].end.tv_usec - metro[meu_id].start.tv_usec) / 1.e6;*/
 		/*}while(delta<TEMPO_ESPERA_METRO);*/
-		pthread_mutex_unlock(&estacoes[estacao_id].hold);
 		sem_post(&metro[meu_id].avanca);
 		printf("----Metro %d esta em viagem----\n",metro[meu_id].id);
+		pthread_mutex_unlock(&estacoes[estacao_id].hold);
 		sleep(TEMPO_VIAGEM);//viagem
 	}
 	return 0;
