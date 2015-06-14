@@ -12,7 +12,7 @@
 #define MAX_LOTACAO 4
 #define QTD_PESSOAS 100
 #define QTD_ESTACOES 5
-#define QTD_METROS 1
+#define QTD_METROS 2
 #define METRO QTD_ESTACOES
 #define TEMPO_ESPERA_METRO 5
 #define TEMPO_VIAGEM 7

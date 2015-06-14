@@ -15,7 +15,7 @@ void * Viagem(void * id);
 void * Parada(void *id);
 void * Conserta(void *args);
 void sairmetro(int id,int metro_id);
-void entrarmetro(int id,int metro_id);
+int entrarmetro(int id,int metro_id);
 
 int main()
 {
@@ -89,15 +89,21 @@ void sairmetro(int id, int metro_id)
 	pessoas[id].estado = ESTADO_ENTRAR;
 }
 
-void entrarmetro(int id,int metro_id)
+int entrarmetro(int id,int metro_id)
 {
-	sem_wait(&metro[metro_id].lotacao);
-	pthread_mutex_lock(&metro[metro_id].atualiza);
-	metro[metro_id].qtd_pessoas++;
-	pthread_mutex_unlock(&metro[metro_id].atualiza);
-	pessoas[id].meu_metro = metro_id;
-	pessoas[id].estacao_atual = METRO;
-	pessoas[id].estado = ESTADO_SAIR;
+	if(sem_trywait(&metro[metro_id].lotacao)==0)
+	{
+		pthread_mutex_lock(&metro[metro_id].atualiza);
+		metro[metro_id].qtd_pessoas++;
+		pthread_mutex_unlock(&metro[metro_id].atualiza);
+		pessoas[id].meu_metro = metro_id;
+		pessoas[id].estacao_atual = METRO;
+		pessoas[id].estado = ESTADO_SAIR;
+		return 0;
+	}
+	else
+		return 1;
+	/*sem_wait(&metro[metro_id].lotacao);*/
 }
 
 void *Parada(void *id)
@@ -140,8 +146,10 @@ void *Parada(void *id)
 					pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro[metro_id].porta);    
 				}
 				pthread_mutex_unlock(&metro[metro_id].porta);
-				entrarmetro(meu_id,metro_id);
-				printf(" >>>> Pessoa %d entrou no metro %d na estacao %d com destino %d\n", pessoas[meu_id].id,pessoas[meu_id].meu_metro,metro[metro_id].estacao_atual,pessoas[meu_id].estacao_destino);
+				if(entrarmetro(meu_id,metro_id)==0)
+				{
+					printf(" >>>> Pessoa %d entrou no metro %d na estacao %d com destino %d\n", pessoas[meu_id].id,pessoas[meu_id].meu_metro,metro[metro_id].estacao_atual,pessoas[meu_id].estacao_destino);
+				}
 				break;
 		}
 	}
