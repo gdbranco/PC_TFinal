@@ -8,21 +8,23 @@
 metro_t *metro;
 pessoa_t *pessoas;
 estacao_t *estacoes;
+sem_t mecanico;
 
 
 void * Viagem(void * id);
 void * Parada(void *id);
+void * Conserta(void *args);
 void sairmetro(int id,int metro_id);
 void entrarmetro(int id,int metro_id);
 
 int main()
 {
+	pthread_t *pessoaHandler;
+	pthread_t *metroHandler;
 	// Alocação de memoria
 	pessoas  = (pessoa_t*) malloc (QTD_PESSOAS * sizeof(pessoa_t));
 	estacoes = (estacao_t*) malloc (QTD_ESTACOES * sizeof(estacao_t));
 	metro = (metro_t*) malloc (QTD_METROS * sizeof(metro_t));
-	pthread_t *pessoaHandler;
-	pthread_t *metroHandler;
 	pessoaHandler = (pthread_t*) malloc (QTD_PESSOAS * sizeof(pthread_t));
 	metroHandler = (pthread_t*) malloc (QTD_METROS * sizeof(pthread_t));
 	printf("Memoria alocada\n");
@@ -31,6 +33,7 @@ int main()
 	MetroInit(metro);
 	PessoaInit(pessoas);
 	EstacaoInit(estacoes);
+	sem_init(&mecanico,0,0);
 	printf("Inicialização concluida\n");
 
 	// Programa em si
@@ -42,6 +45,7 @@ int main()
 	{
 		pthread_create(&pessoaHandler[i], NULL, &Parada, (void*)(intptr_t)i);
 	}
+	Conserta(NULL);
 	for(int i=0;i< QTD_METROS;i++)
 	{
 		pthread_join(metroHandler[i],NULL);
@@ -61,6 +65,17 @@ int main()
 
 	pthread_exit(NULL);
 	printf("Memória Liberada\n");
+	return 0;
+}
+
+void *Conserta(void *args)
+{
+	while(1)
+	{
+		sem_wait(&mecanico);
+		printf("\a\tConsertando o metro ... ");
+		sleep(TEMPO_CONSERTAR);
+	}
 	return 0;
 }
 
@@ -110,11 +125,11 @@ void *Parada(void *id)
 					printf("Pessoa %d esperando o metro %d chegar no destino %d\n",pessoas[meu_id].id,metro_id,pessoas[meu_id].estacao_destino);
 					pthread_cond_wait(&metro[metro_id].dentro,&metro[metro_id].porta);
 				}
+				pthread_mutex_unlock(&metro[metro_id].porta);
 				sairmetro(meu_id,metro_id);
 				printf(" <<<< Pessoa %d saiu do metro %d na estacao %d\n", pessoas[meu_id].id,metro_id,metro[metro_id].estacao_atual);
 				sleep(TEMPO_ESPERA_PESSOA);
 				PessoaNovoDestino(pessoas, meu_id);
-				pthread_mutex_unlock(&metro[metro_id].porta);
 				break;
 			case ESTADO_ENTRAR:
 				/*Decide se a pessoa deve esperar na estacao ate um metro chegar nela*/
@@ -136,31 +151,43 @@ void *Parada(void *id)
 void *Viagem(void *id)
 {
 	int meu_id = (intptr_t)id;
-	/*double delta;*/
 	int estacao_id;
 	while(1)
 	{
-		pthread_mutex_lock(&metro[meu_id].porta);
-		sem_wait(&metro[meu_id].avanca);
-		/*gettimeofday(&metro[meu_id].start,NULL);*/
-		metro[meu_id].estacao_atual = (metro[meu_id].estacao_atual+1)%QTD_ESTACOES;
-		estacao_id = metro[meu_id].estacao_atual;
-		pthread_mutex_lock(&estacoes[estacao_id].hold);
-		estacoes[estacao_id].metro_estacao = metro[meu_id].id;
-		printf("\nMetro %d chegou na estacao %d\n\n",metro[meu_id].id,metro[meu_id].estacao_atual);
-		pthread_cond_broadcast(&metro[meu_id].dentro);
-		pthread_cond_broadcast(&estacoes[metro[meu_id].estacao_atual].avisa);
-		pthread_mutex_unlock(&metro[meu_id].porta);
-		sleep(TEMPO_ESPERA_METRO);
-		/*do*/
-		/*{*/
-			/*gettimeofday(&metro[meu_id].end,NULL);*/
-			/*delta = ((metro[meu_id].end.tv_sec - metro[meu_id].start.tv_sec) * 1.e6 + metro[meu_id].end.tv_usec - metro[meu_id].start.tv_usec) / 1.e6;*/
-		/*}while(delta<TEMPO_ESPERA_METRO);*/
-		sem_post(&metro[meu_id].avanca);
-		printf("----Metro %d esta em viagem----\n",metro[meu_id].id);
-		pthread_mutex_unlock(&estacoes[estacao_id].hold);
-		sleep(TEMPO_VIAGEM);//viagem
+		switch(metro[meu_id].estado)
+		{
+			case ESTADO_FUNCIONANDO:
+				//Segura as portas do metro para que as pessoas nao possam entrar quando for mudar de estacao
+				sem_wait(&metro[meu_id].avanca);
+				metro[meu_id].estacao_atual = (metro[meu_id].estacao_atual+1)%QTD_ESTACOES;
+				estacao_id = metro[meu_id].estacao_atual;
+				//Nao deixa outro metro chegar na estacao se ja existe algum la
+				pthread_mutex_lock(&estacoes[estacao_id].hold);
+				pthread_mutex_lock(&metro[meu_id].porta);
+				estacoes[estacao_id].metro_estacao = metro[meu_id].id;
+				printf("\nMetro %d chegou na estacao %d\n\n",metro[meu_id].id,metro[meu_id].estacao_atual);
+				//Solta as portas para que pessoas possam utilizar o metro enquanto estiver parado
+				pthread_mutex_unlock(&metro[meu_id].porta);
+				//Dar os avisos as pessoas, tanto de dentro do metro quanto na estacao que parou
+				pthread_cond_broadcast(&metro[meu_id].dentro);
+				pthread_cond_broadcast(&estacoes[metro[meu_id].estacao_atual].avisa);
+				//Espera um pouco para as pessoas poderem entrar no metro
+				sleep(TEMPO_ESPERA_METRO);
+				//Segura as portas para comecar a viagem
+				pthread_mutex_lock(&metro[meu_id].porta);
+				sem_post(&metro[meu_id].avanca);
+				printf("----Metro %d esta em viagem----\n",metro[meu_id].id);
+				pthread_mutex_unlock(&metro[meu_id].porta);
+				pthread_mutex_unlock(&estacoes[estacao_id].hold);
+				sleep(TEMPO_VIAGEM);//viagem
+				break;
+			case ESTADO_QUEBRADO: //Nao implementado
+				pthread_mutex_lock(&metro[meu_id].porta);
+				sem_post(&mecanico);
+				metro[meu_id].estado = ESTADO_FUNCIONANDO;
+				pthread_mutex_unlock(&metro[meu_id].porta);
+				break;
+		}
 	}
 	return 0;
 }

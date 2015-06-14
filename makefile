@@ -9,8 +9,8 @@ estruturas.o: estruturas.c estruturas.h
 	gcc -std=gnu99 -Wall estruturas.c estruturas.h -c -pthread
 	
 clean:
+	rm -f *.gch
 	rm -f *.o
 
 fclean: clean
-	rm -f *.gch
 	rm -f metro

@@ -12,6 +12,7 @@ void MetroInit(metro_t *metro)
 		sem_init(&metro[i].lotacao,0,MAX_LOTACAO);
 		sem_init(&metro[i].avanca,0,1);
 		metro[i].qtd_pessoas = 0;
+		metro[i].estado = ESTADO_FUNCIONANDO;
 	}
 }
 void MetroDestroy(metro_t *metro)
@@ -22,16 +23,16 @@ void MetroDestroy(metro_t *metro)
 //--------------PESSOA-------------------
 void PessoaInit(pessoa_t *pessoa)
 {
-	unsigned int seed;
+	unsigned int seed,seed2;
 	for(int i=0; i < QTD_PESSOAS; i++)
 	{
 		pessoa[i].id = i;
+		seed = time(NULL) + i;
+		seed2 = time(NULL) + rand_r(&seed)*i;
 		do
 		{
-			seed = time(NULL) + i;
 			pessoa[i].estacao_atual = rand_r(&seed) % QTD_ESTACOES;
-			seed = time(NULL) + 2*i;
-			pessoa[i].estacao_destino = rand_r(&seed) % QTD_ESTACOES;
+			pessoa[i].estacao_destino = rand_r(&seed2) % QTD_ESTACOES;
 		}while(pessoa[i].estacao_destino == pessoa[i].estacao_atual);
 		pessoa[i].estado = ESTADO_ENTRAR;
 		pessoa[i].meu_metro = -1;
