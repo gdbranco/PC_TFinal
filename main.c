@@ -19,6 +19,23 @@ int entrarmetro(int id,int metro_id);
 
 int main()
 {
+	printf("\tMAX_LOTACAO : %d;\n \
+	QTD_PESSOAS : %d;\n \
+	QTD_ESTACOES : %d;\n \
+	QTD_METROS : %d;\n \
+	TEMPO_ESPERA_METRO : %d;\n \
+	TEMPO_VIAGEM : %d;\n \
+	TEMPO_ESPERA_PESSOA : %d;\n \
+	TEMPO_CONSERTAR : %d.\n\n",
+	MAX_LOTACAO,
+	QTD_PESSOAS,
+	QTD_ESTACOES,
+	QTD_METROS,
+	TEMPO_ESPERA_METRO,
+	TEMPO_VIAGEM,
+	TEMPO_ESPERA_PESSOA,
+	TEMPO_CONSERTAR);
+
 	pthread_t *pessoaHandler;
 	pthread_t *metroHandler;
 	// Alocação de memoria
@@ -130,7 +147,7 @@ void *controle_pessoa(void *id)
 					pthread_mutex_lock(&metro[metro_id].porta);
 					while(pessoas[meu_id].estacao_destino!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual == METRO)
 					{
-						printf("Pessoa %d esperando o metro %d chegar no destino %d\n",pessoas[meu_id].id,metro_id,pessoas[meu_id].estacao_destino);
+						printf(" Pessoa %d esperando o metro %d chegar no destino %d [Dentro do Metrô]\n",pessoas[meu_id].id,metro_id,pessoas[meu_id].estacao_destino);
 						pthread_cond_wait(&metro[metro_id].dentro,&metro[metro_id].porta);
 					}
 					pthread_mutex_unlock(&metro[metro_id].porta);
@@ -144,7 +161,7 @@ void *controle_pessoa(void *id)
 					pthread_mutex_lock(&metro[metro_id].porta);
 					while(pessoas[meu_id].estacao_atual!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual != METRO)
 					{
-						/*printf("Pessoa %d esperando um metro chegar na estacao %d\n",pessoas[meu_id].id,pessoas[meu_id].estacao_atual);*/
+						//printf("Pessoa %d esperando um metro chegar na estacao %d [Fora do Metrô]\n",pessoas[meu_id].id,pessoas[meu_id].estacao_atual);
 						pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro[metro_id].porta);
 					}
 					pthread_mutex_unlock(&metro[metro_id].porta);
