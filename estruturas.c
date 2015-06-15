@@ -10,7 +10,6 @@ void MetroInit(metro_t *metro)
 		pthread_mutex_init(&metro[i].atualiza,NULL);
 		pthread_cond_init(&metro[i].dentro,NULL);
 		sem_init(&metro[i].lotacao,0,MAX_LOTACAO);
-		sem_init(&metro[i].avanca,0,1);
 		metro[i].qtd_pessoas = 0;
 		metro[i].estado = ESTADO_FUNCIONANDO;
 	}
@@ -68,6 +67,7 @@ void EstacaoInit(estacao_t * estacao)
 		pthread_mutex_init(&estacao[i].hold,NULL);
 		pthread_cond_init(&estacao[i].avisa, NULL);
 		estacao[i].id = i;
+		estacao[i].metro_estacao = -1;
 	}
 }
 

@@ -10,7 +10,7 @@
 #define ESTADO_FUNCIONANDO 0
 #define ESTADO_QUEBRADO 1
 #define MAX_LOTACAO 4
-#define QTD_PESSOAS 100
+#define QTD_PESSOAS 20
 #define QTD_ESTACOES 5
 #define QTD_METROS 2
 #define METRO QTD_ESTACOES
@@ -25,7 +25,6 @@ typedef struct _metro
 	pthread_mutex_t porta;
 	pthread_mutex_t atualiza;
 	sem_t lotacao;
-	sem_t avanca;
 	pthread_cond_t dentro;
 	unsigned int qtd_pessoas;
 	unsigned int estado;

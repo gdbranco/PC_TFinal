@@ -73,7 +73,7 @@ void *Conserta(void *args)
 	while(1)
 	{
 		sem_wait(&mecanico);
-		printf("\a\tConsertando o metro ... ");
+		printf("\a\tConsertando o metro ... \n");
 		sleep(TEMPO_CONSERTAR);
 	}
 	return 0;
@@ -121,36 +121,39 @@ void *controle_pessoa(void *id)
 		{
 			metro_id = estacoes[estacao_id].metro_estacao;
 		}
-		switch(pessoas[meu_id].estado)
+		if(metro_id!=-1)
 		{
-			case ESTADO_SAIR:
-				/*Decide se a pessoa deve esperar dentro do metro até chegar em sua estacao de destino*/
-				pthread_mutex_lock(&metro[metro_id].porta);
-				while(pessoas[meu_id].estacao_destino!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual == METRO)
-				{
-					printf("Pessoa %d esperando o metro %d chegar no destino %d\n",pessoas[meu_id].id,metro_id,pessoas[meu_id].estacao_destino);
-					pthread_cond_wait(&metro[metro_id].dentro,&metro[metro_id].porta);
-				}
-				pthread_mutex_unlock(&metro[metro_id].porta);
-				sairmetro(meu_id,metro_id);
-				printf(" <<<< Pessoa %d saiu do metro %d na estacao %d\n", pessoas[meu_id].id,metro_id,metro[metro_id].estacao_atual);
-				sleep(TEMPO_ESPERA_PESSOA);
-				PessoaNovoDestino(pessoas, meu_id);
-				break;
-			case ESTADO_ENTRAR:
-				/*Decide se a pessoa deve esperar na estacao ate um metro chegar nela*/
-				pthread_mutex_lock(&metro[metro_id].porta);
-				while(pessoas[meu_id].estacao_atual!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual != METRO)
-				{
-					printf("Pessoa %d esperando um metro chegar na estacao %d\n",pessoas[meu_id].id,pessoas[meu_id].estacao_atual);
-					pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro[metro_id].porta);
-				}
-				pthread_mutex_unlock(&metro[metro_id].porta);
-				if(entrarmetro(meu_id,metro_id)==0)
-				{
-					printf(" >>>> Pessoa %d entrou no metro %d na estacao %d com destino %d\n", pessoas[meu_id].id,pessoas[meu_id].meu_metro,metro[metro_id].estacao_atual,pessoas[meu_id].estacao_destino);
-				}
-				break;
+			switch(pessoas[meu_id].estado)
+			{
+				case ESTADO_SAIR:
+					/*Decide se a pessoa deve esperar dentro do metro até chegar em sua estacao de destino*/
+					pthread_mutex_lock(&metro[metro_id].porta);
+					while(pessoas[meu_id].estacao_destino!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual == METRO)
+					{
+						printf("Pessoa %d esperando o metro %d chegar no destino %d\n",pessoas[meu_id].id,metro_id,pessoas[meu_id].estacao_destino);
+						pthread_cond_wait(&metro[metro_id].dentro,&metro[metro_id].porta);
+					}
+					pthread_mutex_unlock(&metro[metro_id].porta);
+					sairmetro(meu_id,metro_id);
+					printf(" <<<< Pessoa %d saiu do metro %d na estacao %d\n", pessoas[meu_id].id,metro_id,metro[metro_id].estacao_atual);
+					sleep(TEMPO_ESPERA_PESSOA);
+					PessoaNovoDestino(pessoas, meu_id);
+					break;
+				case ESTADO_ENTRAR:
+					/*Decide se a pessoa deve esperar na estacao ate um metro chegar nela*/
+					pthread_mutex_lock(&metro[metro_id].porta);
+					while(pessoas[meu_id].estacao_atual!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual != METRO)
+					{
+						/*printf("Pessoa %d esperando um metro chegar na estacao %d\n",pessoas[meu_id].id,pessoas[meu_id].estacao_atual);*/
+						pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro[metro_id].porta);
+					}
+					pthread_mutex_unlock(&metro[metro_id].porta);
+					if(entrarmetro(meu_id,metro_id)==0)
+					{
+						printf(" >>>> Pessoa %d entrou no metro %d na estacao %d com destino %d\n", pessoas[meu_id].id,pessoas[meu_id].meu_metro,metro[metro_id].estacao_atual,pessoas[meu_id].estacao_destino);
+					}
+					break;
+			}
 		}
 	}
 	return 0;
@@ -160,13 +163,14 @@ void *controle_metro(void *id)
 {
 	int meu_id = (intptr_t)id;
 	int estacao_id;
+	unsigned int seed = time(NULL);
+	unsigned int seed2 = time(NULL)*meu_id;
 	while(1)
 	{
 		switch(metro[meu_id].estado)
 		{
 			case ESTADO_FUNCIONANDO:
 				//Segura as portas do metro para que as pessoas nao possam entrar quando for mudar de estacao
-				sem_wait(&metro[meu_id].avanca);
 				metro[meu_id].estacao_atual = (metro[meu_id].estacao_atual+1)%QTD_ESTACOES;
 				estacao_id = metro[meu_id].estacao_atual;
 				//Nao deixa outro metro chegar na estacao se ja existe algum la
@@ -183,16 +187,23 @@ void *controle_metro(void *id)
 				sleep(TEMPO_ESPERA_METRO);
 				//Segura as portas para comecar a viagem
 				pthread_mutex_lock(&metro[meu_id].porta);
-				sem_post(&metro[meu_id].avanca);
 				printf("----Metro %d esta em viagem----\n",metro[meu_id].id);
-				pthread_mutex_unlock(&metro[meu_id].porta);
 				pthread_mutex_unlock(&estacoes[estacao_id].hold);
 				sleep(TEMPO_VIAGEM);//viagem
+				seed = rand_r(&seed)*rand_r(&seed2);
+				if(rand_r(&seed)%100 < 21)
+				{
+					metro[meu_id].estado = ESTADO_QUEBRADO;
+					printf("---|METRO %d QUEBROU|---\n", meu_id);
+				}				
+				pthread_mutex_unlock(&metro[meu_id].porta);
 				break;
 			case ESTADO_QUEBRADO: //Nao implementado
 				pthread_mutex_lock(&metro[meu_id].porta);
 				sem_post(&mecanico);
+				sleep(TEMPO_CONSERTAR+1);
 				metro[meu_id].estado = ESTADO_FUNCIONANDO;
+				printf("---|METRO %d FUNCIONANDO|---\n", meu_id);
 				pthread_mutex_unlock(&metro[meu_id].porta);
 				break;
 		}
