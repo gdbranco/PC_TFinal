@@ -188,6 +188,7 @@ void *controle_metro(void *id)
 				//Segura as portas para comecar a viagem
 				pthread_mutex_lock(&metro[meu_id].porta);
 				printf("----Metro %d esta em viagem----\n",metro[meu_id].id);
+				estacoes[estacao_id].metro_estacao = -1;
 				pthread_mutex_unlock(&estacoes[estacao_id].hold);
 				sleep(TEMPO_VIAGEM);//viagem
 				seed = rand_r(&seed)*rand_r(&seed2);
