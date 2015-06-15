@@ -11,8 +11,8 @@ estacao_t *estacoes;
 sem_t mecanico;
 
 
-void * Viagem(void * id);
-void * Parada(void *id);
+void * controle_metro(void * id);
+void * controle_pessoa(void *id);
 void * Conserta(void *args);
 void sairmetro(int id,int metro_id);
 int entrarmetro(int id,int metro_id);
@@ -39,11 +39,11 @@ int main()
 	// Programa em si
 	for(int i=0;i<QTD_METROS;i++)
 	{
-		pthread_create(&metroHandler[i], NULL, &Viagem, (void*)(intptr_t)i);
+		pthread_create(&metroHandler[i], NULL, &controle_metro, (void*)(intptr_t)i);
 	}
 	for(int i=0; i < QTD_PESSOAS; i++)
 	{
-		pthread_create(&pessoaHandler[i], NULL, &Parada, (void*)(intptr_t)i);
+		pthread_create(&pessoaHandler[i], NULL, &controle_pessoa, (void*)(intptr_t)i);
 	}
 	Conserta(NULL);
 	for(int i=0;i< QTD_METROS;i++)
@@ -106,7 +106,7 @@ int entrarmetro(int id,int metro_id)
 	/*sem_wait(&metro[metro_id].lotacao);*/
 }
 
-void *Parada(void *id)
+void *controle_pessoa(void *id)
 {
 	int meu_id = (intptr_t)id;
 	int estacao_id, metro_id;
@@ -143,7 +143,7 @@ void *Parada(void *id)
 				while(pessoas[meu_id].estacao_atual!=metro[metro_id].estacao_atual && pessoas[meu_id].estacao_atual != METRO)
 				{
 					printf("Pessoa %d esperando um metro chegar na estacao %d\n",pessoas[meu_id].id,pessoas[meu_id].estacao_atual);
-					pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro[metro_id].porta);    
+					pthread_cond_wait(&estacoes[pessoas[meu_id].estacao_atual].avisa,&metro[metro_id].porta);
 				}
 				pthread_mutex_unlock(&metro[metro_id].porta);
 				if(entrarmetro(meu_id,metro_id)==0)
@@ -156,7 +156,7 @@ void *Parada(void *id)
 	return 0;
 }
 
-void *Viagem(void *id)
+void *controle_metro(void *id)
 {
 	int meu_id = (intptr_t)id;
 	int estacao_id;
